@@ -2,169 +2,123 @@ from Employee import Employee
 from Task import Task
 from Project import Project
 from Table_methods import *
+import pandas as pd
 import os
+import psycopg2
+import tkinter as tk
+from tkinter import ttk, messagebox
 
-# Создание списка сотрудников - объектов класса Employee
-employees = [
-    Employee(101,'Дмитрий Краснов', 'Разработчик', 100000.0, 'krasn_dmitr@mail.ru'),
-    Employee(102, 'Александр Никитин', 'Разработчик', 110000.0, 'kit_ne_sanya@mail.ru'),
-    Employee(103, 'Елена Афанасьева', 'Аналитик', 95000.0, 'elfanas@yandex.ru'),
-    Employee(104,'Наталья Высоцкая', 'Аналитик', 89000.0, 'vysotskiy_van_lave@mail.ru'),
-    Employee(105,'Артём Казаков', 'Тестировщик', 90000.0, 'kazak_art@yandex.ru'),
-    Employee(106,'Ирина Волобуева', 'Тестировщик', 95000.0, 'volobuy_irina@mail.ru')
-]
+# ===== Подключение к базе =====
 
-# Создаём csv файл, если его ещё нет для таблицы сотрудников
-with open('employees_file.csv', 'w') as f_e:
-    create_employees_csv(employees)
+conn = psycopg2.connect(
+    host="localhost",
+    database="postgres",  # имя вашей базы
+    user="postgres",
+    password="1234",
+    port=5432
+)
 
-# Создание списка задач для проекта Альфа
-tasks = [
-    Task(10,'Реализация интеграции с внешней системой 1', 'Необходимо реализовать интеграцию с внешней системой 1'),
-    Task(11,'Оценить новый бизнес-процесс для работы с системой 1', 'Необходимо оценить новый бизнес-процесс для работы с системой 1'),
-    Task(12,'Тестирование интеграции с системой 1', 'Необходимо подготовить автотесты интеграции с системой 1'),
-    Task(20,'Реализация интеграции с внешней системой 2', 'Необходимо реализовать интеграцию с внешней системой 2'),
-    Task(21,'Оценить новый бизнес-процесс для работы с системой 2', 'Необходимо оценить новый бизнес-процесс для работы с системой 2'),
-    Task(22,'Тестирование интеграции с системой 2', 'Необходимо подготовить автотесты интеграции с системой 2'),
-    Task(30,'Реализация интеграции с внешней системой 3', 'Необходимо реализовать интеграцию с внешней системой 3'),
-    Task(31,'Оценить новый бизнес-процесс для работы с системой 3', 'Необходимо оценить новый бизнес-процесс для работы с системой 3'),
-    Task(32,'Тестирование интеграции с системой 3', 'Необходимо подготовить автотесты интеграции с системой 3')
-]
+cur = conn.cursor()
 
-# Создаём csv файл, если его ещё нет для таблицы задач
-with open('tasks_file.csv', 'w') as f:
-    create_tasks_csv(tasks)
 
-# Создание списка проектов
-projects = [
-    Project(1, 'Проект системы 1'),
-    Project(2, 'Проект системы 2'),
-    Project(3, 'Проект системы 3')
-]
+# ===== Главное окно =====
 
-# Создаём csv файл, если его ещё нет для таблицы проектов
-with open('projects.csv', 'w') as f_t:
-    create_projects_csv(projects)
+root = tk.Tk()
+root.title("Учёт рабочего времени")
+root.geometry("1000x800")
 
+# ===== Функции =====
+
+def refresh_table():
+    """Обновляем таблицу, загружая данные из базы"""
+    for row in table.get_children():
+        table.delete(row)
+    cur.execute("SELECT * FROM employees ORDER BY id")
+    for row in cur.fetchall():
+        table.insert("", "end", values=row)
+
+def add_hours():
+    selected = table.focus()
+    if not selected:
+        messagebox.showwarning("Ошибка", "Выберите сотрудника, которому добавить часы!")
+        return
+    # Создаем новое окно верхнего уровня
+    new_window = tk.Toplevel(root)
+    new_window.title("Добавить отработанные часы")
+    new_window.geometry("300x150")
+
+    # Создаем метку
+    label = tk.Label(new_window, text="Введите кол-во часов:")
+    label.pack(pady=10)
+
+    # Создаем поле ввода (Entry)
+    entry_var = tk.StringVar() # Переменная для хранения введенного текста
+    hours_entry = tk.Entry(new_window, textvariable=entry_var, width=30)
+    hours_entry.pack(pady=5)
+
+    # Кнопка для подтверждения
+    def get_value():
+        value = entry_var.get() # Получаем значение из поля ввода
+        if value:
+            new_window.destroy() # Закрываем всплывающее окно
+        else:
+            messagebox.showwarning("Внимание", "Пожалуйста, введите значение.")
+
+    submit_button = tk.Button(new_window, text="OK", command=get_value)
+    submit_button.pack(pady=10)
+
+    hours = int(hours_entry.get())
+    row_id = table.item(selected, "values")[0]
+    cur.execute("UPDATE employees SET hours_worked = %s WHERE id=%s", (hours, row_id))
+    conn.commit()
+    refresh_table()
+
+def export_employees_to_excel():
+    """Выгрузка данных по сотрудникам в Excel"""
+    cur.execute("SELECT * FROM employees ORDER BY id")
+    rows = cur.fetchall()
+    df = pd.DataFrame(rows, columns=["ID", "Имя", "Должность", "Зарплата", "EMAIL", "Кол-во отработанных часов"])
+    df.to_excel("employees.xlsx", index=False)
+    messagebox.showinfo("Успех", "Данные успешно экспортированы в employees.xlsx")
+
+
+def export_projects_to_excel():
+    """Выгрузка данных по проектам в Excel"""
+    cur.execute("SELECT * FROM projects ORDER BY id")
+    rows = cur.fetchall()
+    df = pd.DataFrame(rows, columns=["ID", "Название проекта"])
+    df.to_excel("projects.xlsx", index=False)
+    messagebox.showinfo("Успех", "Данные успешно экспортированы в projects.xlsx")
+
+def export_tasks_to_excel():
+    """Выгрузка данных по задачам в Excel"""
+    cur.execute("SELECT * FROM tasks ORDER BY id")
+    rows = cur.fetchall()
+    df = pd.DataFrame(rows, columns=["ID", "Название задачи", "Описание задачи", "Статус задачи", "Идентификатор проекта", "Идентификатор сотрудника, которому назначена задача"])
+    df.to_excel("tasks.xlsx", index=False)
+    messagebox.showinfo("Успех", "Данные успешно экспортированы в tasks.xlsx")
+
+# ===== Кнопки =====
+
+tk.Button(root, text="Добавить отработанные часы сотруднику", command=add_hours).pack(fill="x", padx=10, pady=5)
+tk.Button(root, text="Экспорт в Excel сотрудников", command=export_employees_to_excel).pack(fill="x", padx=10, pady=5)
+tk.Button(root, text="Экспорт в Excel проектов", command=export_projects_to_excel).pack(fill="x", padx=10, pady=5)
+tk.Button(root, text="Экспорт в Excel задач", command=export_tasks_to_excel).pack(fill="x", padx=10, pady=5)
+tk.Button(root, text="Показать всю таблицу", command=refresh_table).pack(fill="x", padx=10, pady=5)
+
+# ===== Таблица =====
+
+table = ttk.Treeview(root, columns=("id", "name", "position", "salary", "email", "hours_worked"), show="headings")
+table.heading("id", text="ID")
+table.heading("name", text="Имя")
+table.heading("position", text="Должность")
+table.heading("salary", text="Зарплата")
+table.heading("email", text="EMAIL")
+table.heading("hours_worked", text="Кол-во отработанных часов")
+table.pack(fill="both", expand=True, padx=10, pady=10)
 
 if __name__ == '__main__':
-    """Демонстрационный пример использования всех классов и функций."""
-    print("=" * 50)
-    print("ДЕМОНСТРАЦИЯ РАБОТЫ СИСТЕМЫ УЧЁТА РАБОЧЕГО ВРЕМЕНИ")
-    print("=" * 50)
-
-    print("1. Работа с сотрудниками - Employees:")
-
-    print("\nПри старте программы создаётся файл с начальными данными:")
-
-    df_employees = pd.read_csv('employees_file.csv')
-
-    print(df_employees)
-
-    print("\n1.1. СОЗДАНИЕ СОТРУДНИКОВ:")
-
-    employee_1 = Employee(107,'Яна Васильева', 'Разработчик', 105000.0, 'vasilyan@mail.ru')
-    employee_2 = Employee(108, 'Игорь Витальев', 'Аналитик', 100000.0, 'igoryan_vit@yandex.ru')
-    employee_3 = Employee(109,'Павел Аристов', 'Тестировщик', 95000.0, 'pal_arist@mail.ru')
-
-    print("\nПосле добавления сотрудников можем посмотреть на обновленную таблицу в файле:")
-
-    df_employees = pd.read_csv('employees_file.csv')
-
-    print(df_employees)
-
-    print("\n1.2. Добавляем отработанные часы:")
-
-    employee_1.add_hours(160)  # Полный месяц
-    employee_2.add_hours(145)  # Неполный месяц
-    employee_3.add_hours(180)  # Сверхурочные
-
-    print("\nПосле добавления отработанных часов можем посмотреть на обновленную таблицу в файле:")
-
-    df_employees = pd.read_csv('employees_file.csv')
-
-    print(df_employees)
-
-    print(f"Сотруднику {employee_1._name}")
-    print(f"Зарплата к выплате: {employee_1.calculate_pay():.2f} руб.")
-
-    print(f"Сотруднику {employee_2._name}")
-    print(f"Зарплата к выплате: {employee_2.calculate_pay():.2f} руб.")
-
-    print(f"Сотруднику {employee_3._name}")
-    print(f"Зарплата к выплате: {employee_3.calculate_pay():.2f} руб.")
-
-    print(f"У сотрудника {employee_1._name} EMAIL: {employee_1.extract_email()}.")
-
-    print(f"У сотрудника {employee_2._name} EMAIL: {employee_2.extract_email()}.")
-
-    print(f"У сотрудника {employee_3._name} EMAIL: {employee_3.extract_email()}.")
-
-    print("2. Работа с задачами - Tasks:")
-
-    print("\nПри старте программы создаётся файл с начальными данными:")
-
-    df_tasks = pd.read_csv('tasks_file.csv')
-
-    print(df_tasks)
-
-    print("\n2.1. СОЗДАНИЕ ЗАДАЧ:")
-    task_1 = Task(40,'Реализация интеграции с внешней системой 4', 'Необходимо реализовать интеграцию с внешней системой 4')
-    task_2 = Task(41,'Оценить новый бизнес-процесс для работы с системой 4', 'Необходимо оценить новый бизнес-процесс для работы с системой 4')
-    task_3 = Task(42,'Тестирование интеграции с системой 4', 'Необходимо подготовить автотесты интеграции с системой 4')
-
-    print("\nПосле добавления задач можем посмотреть на обновленную таблицу в файле:")
-
-    df_tasks = pd.read_csv('tasks_file.csv')
-
-    print(df_tasks)
-
-    print("\n2.2. НАЗНАЧЕНИЕ ЗАДАЧ СОТРУДНИКАМ:")
-    task_1.assign_employee(employee_1)
-    task_2.assign_employee(employee_2)
-    task_3.assign_employee(employee_3)
-
-    print("\n2.3. Пометим первую и третью задачи как завершённые:")
-    task_1.mark_complete()
-    task_3.mark_complete()
-
-    print("3. Работа с проектами - Projects:")
-
-    print("\nПри старте программы создаётся файл с начальными данными:")
-
-    df_projects = pd.read_csv('projects_file.csv')
-
-    print(df_projects)
-    print("\n3.1. СОЗДАНИЕ ПРОЕКТА:")
-    project_1 = Project(4, 'Проект системы 4')
-
-    print("\nПосле добавления проекта можем посмотреть на обновленную таблицу в файле:")
-
-    df_projects = pd.read_csv('projects_file.csv')
-
-    print(df_projects)
-    print("\n3.2. ДОБАВИМ ЗАДАЧИ К ПРОЕКТУ:")
-    project_1.add_task(task_1)
-    project_1.add_task(task_2)
-    project_1.add_task(task_3)
-
-    print("\nПосле добавления задач в проект можем посмотреть на обновленную таблицу в файле с задачами (там отмечается проект):")
-
-    print("\n3.3. ПОСМОТРИМ СТЕПЕНЬ ЗАВЕРШЁННОСТИ ПРОЕКТА:")
-    print(f"По проекту {project_1._title} процент завершённости составляет: {project_1.project_progress()}.")
-
-    print("\n4. Демонстрация работы функции по удалению строк в csv файле с пропущенными значениями:")
-
-    print("\nДо работы функции:")
-
-    df_tasks = pd.read_csv('tasks_file.csv')
-
-    print(df_tasks)
-
-    read_csv_to_df('tasks_file.csv')
-
-    print("\nПосле работы функции:")
-
-    df_tasks = pd.read_csv('tasks_file.csv')
-
-    print(df_tasks)
+    # ===== Загрузка данных при старте =====
+    refresh_table()
+    # ===== Запуск окна =====
+    root.mainloop()

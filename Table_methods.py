@@ -3,53 +3,6 @@ import os
 import csv
 
 
-def read_csv_to_df(file_path):
-    """
-    Читает CSV файл, удаляет строки с любыми пропущенными значениями (NaN, None)
-    и сохраняет результат в новый CSV файл.
-
-    Args:
-        file_path (str): Путь к исходному CSV файлу.
-    """
-    try:
-        # 1. Чтение CSV файла в DataFrame
-        # Используем 'sep=None' и 'engine='python'' для автоматического определения разделителя
-        # 'skipinitialspace=True' помогает при лишних пробелах после разделителя
-        df = pd.read_csv(file_path, sep=None, engine='python', skipinitialspace=True)  # или 'latin1', 'cp1251'
-
-        # 2. Удаление строк, содержащих хотя бы одно пропущенное значение
-        # how='any' - удаляет, если есть хотя бы одно пропущенное значение в строке
-        df_cleaned = df.dropna(how='any')
-
-        # 3. Удаление исходного файла
-        os.remove(file_path)
-
-        # 4. Сохранение очищенного DataFrame в новый CSV файл
-        df_cleaned.to_csv(file_path, index=False)  # index=False, чтобы не записывать индекс DataFrame
-
-    except FileNotFoundError:
-        print(f"Ошибка: Файл не найден по пути {file_path}")
-    except Exception as e:
-        print(f"Произошла ошибка: {e}")
-
-def create_employees_csv(employees):
-    """
-    Args:
-        employees (list): Список сотрудников.
-    """
-    # Преобразование списка объектов в словарь, а затем в DataFrame
-    employees_dict = {
-        'ID': [employee._emp_id for employee in employees],
-        'Name': [employee._name for employee in employees],
-        'Position': [employee._position for employee in employees],
-        'Salary': [employee._salary for employee in employees],
-        'Email': [employee._email for employee in employees],
-        'Hours_worked': [employee._hours_worked for employee in employees]
-    }
-    df_employees = pd.DataFrame(employees_dict)
-
-    # Запись в CSV с заголовками
-    df_employees.to_csv('employees_file.csv', index=False, encoding='utf-8')
 
 def create_new_employee(employee, filename="employees_file.csv"):
     with open(filename, 'a', newline='', encoding='utf-8') as csvfile:
