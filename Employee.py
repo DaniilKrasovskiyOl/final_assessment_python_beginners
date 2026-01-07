@@ -35,7 +35,7 @@ class Employee:
             print("Значение отработанных часов должно быть больше 0!")
         else:
             self._hours_worked += hours
-            Table_methods.update_employee_field(self._emp_id, 'Hours_worked', self._hours_worked)
+            return self._hours_worked
 
     # Метод возвращает зарплату на основе отработанных часов, считая ставку как месячную зарплату, делённую на 160 часов
     def calculate_pay(self):
