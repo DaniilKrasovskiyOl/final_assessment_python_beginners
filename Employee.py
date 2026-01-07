@@ -5,7 +5,7 @@ import Table_methods
 class Employee:
 
     # Конструктор класса
-    def __init__(self, emp_id, name , position, salary, email):
+    def __init__(self, emp_id, name , position, salary, email, hours_worked = 0):
         # Добавляем новое уникальное ID в множество
         self._emp_id = emp_id
 
@@ -25,9 +25,7 @@ class Employee:
             raise ValueError("Электронная почта сотрудника должна быть непустой строкой!")
         self._email = email #электронная почта сотрудника
 
-        self._hours_worked = 0 #отработанное время в часах(по умолчанию 0)
-
-        Table_methods.create_new_employee(self)
+        self._hours_worked = int(hours_worked) #отработанное время в часах(по умолчанию 0)
 
     # Метод добавляет отработанные часы
     def add_hours(self, hours):
