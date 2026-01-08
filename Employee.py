@@ -1,5 +1,4 @@
 import re
-import Table_methods
 
 
 class Employee:

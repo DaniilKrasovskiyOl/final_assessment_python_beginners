@@ -1,7 +1,6 @@
 import enum
 from Employee import Employee
 from typing import Optional
-import Table_methods
 
 
 class TaskStatus(enum.Enum):
@@ -11,31 +10,34 @@ class TaskStatus(enum.Enum):
 
 class Task:
     # Конструктор класса
-    def __init__(self, task_id, title, description):
-        self._task_id = task_id
+    def __init__(self, task_id, title, description, status = TaskStatus.IN_PROGRESS.value):
+        self.task_id = task_id
         if not isinstance(title, str) or not title:
             raise ValueError("Название задачи должно быть непустой строкой!")
-        self._title = title  # название задачи
+        self.title = title  # название задачи
 
         if not isinstance(description, str) or not description:
             raise ValueError("Описание задачи должно быть непустой строкой!")
-        self._description = description  # описание задачи
+        self.description = description  # описание задачи
 
-        self.status = TaskStatus.IN_PROGRESS.value  # начальный статус задачи
+        self.status = status # статус задачи
 
-        self._assigned_employee: Optional[Employee] = None  # назначенный сотрудник(объект класса Employee)
-
-        Table_methods.create_new_task(self)
+        self.assigned_employee: Optional[Employee] = None  # назначенный сотрудник(объект класса Employee)
 
     # Метод назначает задачу сотруднику
     def assign_employee(self, employee: Employee):
         if not isinstance(employee, Employee):
             raise ValueError("Значение не является объектом класса Employee!")
         else:
-            self._assigned_employee = employee
-            Table_methods.update_task_field(self._task_id, 'Assign_employee_ID', employee.emp_id)
+            self.assigned_employee = employee
+            return employee.emp_id
 
     # Метод отмечает задачу как завершённую
     def mark_complete(self):
         self.status = TaskStatus.FINISHED.value
-        Table_methods.update_task_field(self._task_id, 'Status', self.status)
+        return self.status
+
+    # Метод возвращает задачу в работу
+    def mark_in_progress(self):
+        self.status = TaskStatus.IN_PROGRESS.value
+        return self.status
