@@ -76,18 +76,99 @@ def refresh_tasks_table():
         table_tasks.insert("", "end", values=row)
 
 
-def add_hours():
+def create_new_employee():
+    # Создаем новое окно верхнего уровня
+    new_window = tk.Toplevel(root)
+    new_window.title("Добавить нового сотрудника")
+    new_window.geometry("500x800")
+
+    ttk.Label(new_window, text="Идентификатор:").pack(pady=5)
+    id_entry = ttk.Entry(new_window)
+    id_entry.pack(fill="x", padx=10)
+
+    ttk.Label(new_window, text="Имя:").pack(pady=5)
+    name_entry = ttk.Entry(new_window)
+    name_entry.pack(fill="x", padx=10)
+
+    ttk.Label(new_window, text="Должность:").pack(pady=5)
+    position_entry = ttk.Entry(new_window)
+    position_entry.pack(fill="x", padx=10)
+
+    ttk.Label(new_window, text="Зарплата:").pack(pady=5)
+    salary_entry = ttk.Entry(new_window)
+    salary_entry.pack(fill="x", padx=10)
+
+    ttk.Label(new_window, text="EMAIL:").pack(pady=5)
+    email_entry = ttk.Entry(new_window)
+    email_entry.pack(fill="x", padx=10)
+
+    # Проверка уникальности идентификатора
+    def check_unique_id():
+        value = id_entry.get()  # Получаем значение из поля ввода
+        if value:
+            # Проверяем, есть ли уже такой ID
+            cur.execute("SELECT 1 FROM employees WHERE id=%s", (value,))
+
+            if cur.fetchone() is None:
+                # ID не найден, значит всё корректно
+                return True
+            else:
+                # ID уже существует
+                return False
+        else:
+            return False
+
+    # Проверка, что значение зарплаты соответствует типу данных float
+    def check_salary_is_float():
+        value = salary_entry.get()  # Получаем значение из поля ввода
+        try:
+            float(value)
+            return True
+        except ValueError:
+            return False
+
+    def insert_new_employee():
+
+        employee_id = id_entry.get()
+        employee_name = name_entry.get()
+        employee_position = position_entry.get()
+        employee_salary = salary_entry.get()
+        employee_email = email_entry.get()
+
+        if employee_id == '' or employee_name == '' or employee_position == '' or employee_salary == '' or employee_email == '':
+            messagebox.showwarning("Внимание", "Пожалуйста, введите все значения.")
+        elif not check_unique_id():
+            messagebox.showwarning("Внимание", "Пожалуйста, укажите новый идентификатор, повторения недопустимы.")
+        elif not employee_id.isdigit():
+            messagebox.showwarning("Внимание",
+                                   "Идентификатор должен быть целым числом, если начинается с 0, то будет конвертировано в число.")
+        elif not check_salary_is_float():
+            messagebox.showwarning("Внимание", "Зарплата должна быть числом с плавающей точкой или целым числом.")
+        else:
+            new_employee = Employee(employee_id, employee_name, employee_position, float(employee_salary), employee_email)
+
+            cur.execute("INSERT INTO employees (id, name, position, salary, email) VALUES (%s, %s, %s, %s, %s)",
+                        (new_employee.emp_id, new_employee.name, new_employee.position, new_employee.salary,
+                         new_employee.email))
+            conn.commit()
+            refresh_employees_table()
+            new_window.destroy()  # Закрываем всплывающее окно
+
+    submit_button = tk.Button(new_window, text="OK", command=insert_new_employee)
+    submit_button.pack(pady=10)
+
+def add_hours_employee():
     selected = table_employees.focus()
     if not selected:
         messagebox.showwarning("Ошибка", "Выберите сотрудника, которому добавить часы!")
         return
     else:
-        selected_employee = Employee(table_employees.item(selected, "values")[0], # ID
-                                     table_employees.item(selected, "values")[1], # name
-                                     table_employees.item(selected, "values")[2], # position
-                                     float(table_employees.item(selected, "values")[3]), # salary
-                                     table_employees.item(selected, "values")[4], # email
-                                     table_employees.item(selected, "values")[5]) # hours_worked
+        selected_employee = Employee(table_employees.item(selected, "values")[0],  # ID
+                                     table_employees.item(selected, "values")[1],  # name
+                                     table_employees.item(selected, "values")[2],  # position
+                                     float(table_employees.item(selected, "values")[3]),  # salary
+                                     table_employees.item(selected, "values")[4],  # email
+                                     table_employees.item(selected, "values")[5])  # hours_worked
 
     # Создаем новое окно верхнего уровня
     new_window = tk.Toplevel(root)
@@ -102,18 +183,57 @@ def add_hours():
     def get_value():
         value = hours_entry.get()  # Получаем значение из поля ввода
         if value:
-            messagebox.showinfo("Получено", f"Вы ввели: {value}")
-            hours = selected_employee.add_hours(int(value))
-            row_id = table_employees.item(selected, "values")[0]
-            cur.execute("UPDATE employees SET hours_worked = %s WHERE id=%s", (hours, row_id))
-            conn.commit()
-            refresh_employees_table()
-            new_window.destroy()  # Закрываем всплывающее окно
+            if value.isdigit():
+                messagebox.showinfo("Получено", f"Вы ввели: {value}")
+                hours = selected_employee.add_hours(int(value))
+                row_id = table_employees.item(selected, "values")[0]
+                cur.execute("UPDATE employees SET hours_worked = %s WHERE id=%s", (hours, row_id))
+                conn.commit()
+                refresh_employees_table()
+                new_window.destroy()  # Закрываем всплывающее окно
+            else:
+                messagebox.showwarning("Внимание", "Пожалуйста, введите целое число.")
         else:
             messagebox.showwarning("Внимание", "Пожалуйста, введите значение.")
 
     submit_button = tk.Button(new_window, text="OK", command=get_value)
     submit_button.pack(pady=10)
+
+
+def calculate_pay_employee():
+    selected = table_employees.focus()
+    if not selected:
+        messagebox.showwarning("Ошибка", "Выберите сотрудника, по которому необходимо посчитать зарплату!")
+        return
+    else:
+        selected_employee = Employee(table_employees.item(selected, "values")[0],  # ID
+                                     table_employees.item(selected, "values")[1],  # name
+                                     table_employees.item(selected, "values")[2],  # position
+                                     float(table_employees.item(selected, "values")[3]),  # salary
+                                     table_employees.item(selected, "values")[4],  # email
+                                     table_employees.item(selected, "values")[5])  # hours_worked
+
+        pay_for_employee = selected_employee.calculate_pay()
+
+        messagebox.showinfo("Получено", f"Сотрудник {selected_employee.name} должен получить: {pay_for_employee}")
+
+
+def extract_email_employee():
+    selected = table_employees.focus()
+    if not selected:
+        messagebox.showwarning("Ошибка", "Выберите сотрудника, по которому необходимо посчитать зарплату!")
+        return
+    else:
+        selected_employee = Employee(table_employees.item(selected, "values")[0],  # ID
+                                     table_employees.item(selected, "values")[1],  # name
+                                     table_employees.item(selected, "values")[2],  # position
+                                     float(table_employees.item(selected, "values")[3]),  # salary
+                                     table_employees.item(selected, "values")[4],  # email
+                                     table_employees.item(selected, "values")[5])  # hours_worked
+
+        employee_email = selected_employee.extract_email()
+
+        messagebox.showinfo("Получено", f"У сотрудника {selected_employee.name} email: {employee_email}")
 
 
 def export_employees_to_excel():
@@ -149,8 +269,18 @@ def export_tasks_to_excel():
 
 # Вкладка сотрудников
 
-tk.Button(frame_employees, text="Добавить отработанные часы сотруднику", command=add_hours).pack(fill="x", padx=10,
-                                                                                                 pady=5)
+tk.Button(frame_employees, text="Добавить нового сотрудника", command=create_new_employee).pack(fill="x",
+                                                                                                padx=10,
+                                                                                                pady=5)
+tk.Button(frame_employees, text="Добавить отработанные часы сотруднику", command=add_hours_employee).pack(fill="x",
+                                                                                                          padx=10,
+                                                                                                          pady=5)
+tk.Button(frame_employees, text="Посчитать зарплату выбранному сотруднику", command=calculate_pay_employee).pack(
+    fill="x",
+    padx=10, pady=5)
+tk.Button(frame_employees, text="Получить email выбранного сотрудника", command=extract_email_employee).pack(fill="x",
+                                                                                                             padx=10,
+                                                                                                             pady=5)
 tk.Button(frame_employees, text="Экспорт в Excel", command=export_employees_to_excel).pack(fill="x", padx=10, pady=5)
 tk.Button(frame_employees, text="Обновить таблицу сотрудников", command=refresh_employees_table).pack(fill="x", padx=10,
                                                                                                       pady=5)
