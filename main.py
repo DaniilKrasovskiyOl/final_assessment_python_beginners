@@ -43,7 +43,7 @@ notebook.add(frame_projects, text="Проекты")
 notebook.add(frame_tasks, text="Задачи")
 
 
-# ===== Функции =====
+# ===== Функции для сотрудников =====
 
 def refresh_employees_table():
     """Обновляем таблицу, загружая данные из базы"""
@@ -333,6 +333,8 @@ def export_employees_to_excel():
     messagebox.showinfo("Успех", "Данные успешно экспортированы в employees.xlsx")
 
 
+# ===== Функции для проектов =====
+
 def create_new_project():
     """Создание новго проекта"""
 
@@ -523,6 +525,8 @@ def export_projects_to_excel():
     df.to_excel("projects.xlsx", index=False)
     messagebox.showinfo("Успех", "Данные успешно экспортированы в projects.xlsx")
 
+
+# ===== Функции для задач =====
 
 def create_new_task():
     """Создание новой задачи"""
@@ -810,14 +814,14 @@ tk.Button(frame_tasks, text="Изменить данные по задаче", c
                                                                                         pady=5)
 
 tk.Button(frame_tasks, text="Назначить задачу сотруднику", command=assign_task_to_employee).pack(fill="x",
-                                                                                   padx=10,
-                                                                                   pady=5)
+                                                                                                 padx=10,
+                                                                                                 pady=5)
 tk.Button(frame_tasks, text="Завершить задачу", command=mark_task_complete).pack(fill="x",
-                                                                                        padx=10,
-                                                                                        pady=5)
+                                                                                 padx=10,
+                                                                                 pady=5)
 tk.Button(frame_tasks, text="Вернуть задачу в работу", command=mark_task_in_progress).pack(fill="x",
-                                                                                        padx=10,
-                                                                                        pady=5)
+                                                                                           padx=10,
+                                                                                           pady=5)
 tk.Button(frame_tasks, text="Экспорт в Excel", command=export_tasks_to_excel).pack(fill="x", padx=10, pady=5)
 tk.Button(frame_tasks, text="Обновить таблицу задач", command=refresh_tasks_table).pack(fill="x", padx=10, pady=5)
 

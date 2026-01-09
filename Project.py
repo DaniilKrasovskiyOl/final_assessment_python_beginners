@@ -8,9 +8,9 @@ class Project:
         self.prj_id = prj_id
         if not isinstance(title, str) or not title:
             raise ValueError("Название проекта должно быть непустой строкой!")
-        self.title = title #название проекта
+        self.title = title  # название проекта
 
-        self.tasks: List[Task] = [] #список задач(объекты Task)
+        self.tasks: List[Task] = []  # список задач(объекты Task)
 
     # Метод добавляет задачу к проекту
     def add_task(self, task: Task):

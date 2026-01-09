@@ -1,6 +1,7 @@
 import psycopg2
 from psycopg2 import OperationalError
 
+
 def create_connection(db_name, db_user, db_password, db_host, db_port):
     """Создает и возвращает соединение с базой данных PostgreSQL."""
     conn = None
@@ -17,6 +18,7 @@ def create_connection(db_name, db_user, db_password, db_host, db_port):
         print(f"Ошибка при подключении: {e}")
     return conn
 
+
 def execute_query(connection, query, params=None):
     """Выполняет SQL-запрос."""
     cursor = connection.cursor()
@@ -31,6 +33,7 @@ def execute_query(connection, query, params=None):
         return None
     finally:
         cursor.close()
+
 
 def fetch_data(connection, query, params=None):
     """Выполняет запрос и возвращает результат."""

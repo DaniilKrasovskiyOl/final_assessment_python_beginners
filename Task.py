@@ -10,7 +10,7 @@ class TaskStatus(enum.Enum):
 
 class Task:
     # Конструктор класса
-    def __init__(self, task_id, title, description, status = TaskStatus.IN_PROGRESS.value):
+    def __init__(self, task_id, title, description, status=TaskStatus.IN_PROGRESS.value):
         self.task_id = task_id
         if not isinstance(title, str) or not title:
             raise ValueError("Название задачи должно быть непустой строкой!")
@@ -20,7 +20,7 @@ class Task:
             raise ValueError("Описание задачи должно быть непустой строкой!")
         self.description = description  # описание задачи
 
-        self.status = status # статус задачи
+        self.status = status  # статус задачи
 
         self.assigned_employee: Optional[Employee] = None  # назначенный сотрудник(объект класса Employee)
 
